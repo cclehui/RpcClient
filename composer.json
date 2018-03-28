@@ -1,0 +1,16 @@
+{
+    "name": "cclehui/RpcClient",
+    "description": "微服务rpc 调用client",
+    "type": "library",
+    "keywords": ["微服务","rpc", "client", "调用端"],
+    "license": "MIT",
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://packagist.phpcomposer.com"
+        }   
+    },  
+
+    "require": {
+    }   
+}
