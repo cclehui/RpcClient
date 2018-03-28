@@ -2,3 +2,6 @@
 *.swo
 *.swp
 *.lock
+.idea
+composer.phar
+vendor
