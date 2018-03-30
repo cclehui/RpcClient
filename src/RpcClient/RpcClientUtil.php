@@ -129,11 +129,13 @@ class RpcClientUtil {
 
         $client = $this->getGuzzleClient();
 
+        $rpc_trace_id = null;
+
         //调用链跟踪
         if (self::$REQUEST) {
             $rpc_trace_id = self::$REQUEST->getString('rpc_trace_id');
 
-        } else if ($_REQUEST['rpc_trace_id']) {
+        } else if (isset($_REQUEST['rpc_trace_id'])) {
             $rpc_trace_id = $_REQUEST['rpc_trace_id'];
         }
 
