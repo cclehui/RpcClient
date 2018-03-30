@@ -1,4 +1,5 @@
 <?php
+namespace CClehui\RpcClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
@@ -37,11 +38,14 @@ class RpcClientUtil {
     //trace id
     protected static $rpc_trace_id = null;
 
+    //log instance
+    protected static  $log_instance = null;
+
     protected  $timeout = 5; //调用接口总超时时间
 
     protected $guzzle_client = null;
 
-    public function __construct($rpc_trace_id) {
+    public function __construct($rpc_trace_id = null) {
         //初始化 rpc trace id
         self::initSetRpcTraceId($rpc_trace_id);
     }
@@ -81,6 +85,16 @@ class RpcClientUtil {
      */
     public static function setEnvValue($key, $value) {
         self::$ENV[$key] = $value;
+    }
+
+    /**
+     * setLogInstance
+     * 设置log对象
+     *
+     * @param $log_instance
+     */
+    public static function setLogInstance(\CClehui\RpcClient\RpcLogAbstract $log_instance) {
+        self::$log_instance = $log_instance;
     }
 
 
@@ -224,9 +238,13 @@ class RpcClientUtil {
 
     //写log
     protected static function writeRpcLog($rpc_trace_id, $log_str) {
-        $log_tag = "180328_rpc_log";
 
-        LogCollectionUtil::write($log_tag, "rpc_trace_id:" . $rpc_trace_id . ", $log_str");
+        if (!self::$log_instance) {
+            self::$log_instance = new \CClehui\RpcClient\RpcLogEcho();
+        }
+
+        self::$log_instance->log($rpc_trace_id, $log_str);
+
     }
 
 }
