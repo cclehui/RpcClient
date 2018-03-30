@@ -228,6 +228,11 @@ class RpcClientUtil {
 
     }
 
+    //cclehui_todo
+    public function getPromiseResult() {
+
+    }
+
     //获取guzzle的 client
     protected function getGuzzleClient() {
 
