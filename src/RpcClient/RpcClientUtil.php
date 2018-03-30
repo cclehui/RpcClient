@@ -25,6 +25,13 @@ $promises[$i] = $rpc_client->callRemote($url, $params, 'GET', [], true);
 
 $result_list = \GuzzleHttp\Promise\settle($promises)->wait();
 
+foreach($result_list as $key => $item) {
+$response = $item['value'];
+
+$response = (string)$response->getBody();
+echo $response . "\n";
+}
+
  */
 class RpcClientUtil {
 
