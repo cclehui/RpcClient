@@ -33,7 +33,7 @@ echo $response . "\n";
 }
 
  */
-class RpcClientUtil {
+class HttpRpcClientUtil {
 
 
     //rpc的 server request环境

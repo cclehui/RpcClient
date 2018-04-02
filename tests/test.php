@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 
-$rpc_client = new \CClehui\RpcClient\RpcClientUtil();
+$rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
 
 //设置log 对象
 $rpc_client::setLogInstance(new \CClehui\RpcClient\RpcLogEcho());
