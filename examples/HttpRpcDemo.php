@@ -2,8 +2,15 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$request_num = 2;
-$url = 'http://open.chenlehui.babytree-dev.com/meitun/test_handle';
+//配置 log输出instance
+$logger_instance = new \Monolog\Logger("ccelhui_test");
+//$log_handler = new \Monolog\Handler\StreamHandler(STDOUT, Monolog\Logger::WARNING);
+$log_handler = new \Monolog\Handler\StreamHandler(STDOUT, Monolog\Logger::INFO);
+$logger_instance->pushHandler($log_handler);
+\CClehui\RpcClient\HttpRpcClientUtil::setLogInstance($logger_instance);
+
+$request_num = 200;
+$url = 'http://115.28.38.4/temp/test.php';
 
 //异步请求
 $start_ts = microtime(true);
@@ -12,7 +19,6 @@ $cost_time = microtime(true) - $start_ts;
 
 echo "异步请求耗时:" . $cost_time . "\n";
 
-//print_r($async_result);
 
 //同步请求
 $start_ts = microtime(true);
@@ -34,9 +40,6 @@ class HttpRpcDemo {
 
         $rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
 
-        //设置log 对象
-        $rpc_client::setLogInstance(new \CClehui\RpcClient\RpcLogEcho());
-
         //环境变量用来构造 rpc_trace_id
         $rpc_client::setEnvValue("argv", $argv);
 
@@ -44,7 +47,9 @@ class HttpRpcDemo {
 
         for ($i = 1; $i <= $num; $i++) {
             $url = $url ? $url : 'http://www.baidu.com';
-            $params = [];
+            $params = [
+                "temp" => $i,
+            ];
             $result[$i] = $rpc_client->callRemote($url, $params, 'GET', [], false);
         }
 
@@ -64,9 +69,6 @@ class HttpRpcDemo {
 
         $rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
 
-        //设置log 对象
-        $rpc_client::setLogInstance(new \CClehui\RpcClient\RpcLogEcho());
-
         //环境变量用来构造 rpc_trace_id
         $rpc_client::setEnvValue("argv", $argv);
 
@@ -75,7 +77,9 @@ class HttpRpcDemo {
         //构建多个promise
         for ($i = 1; $i <= $num; $i++) {
             $url = $url ? $url : 'http://www.baidu.com';
-            $params = [];
+            $params = [
+                "temp" => $i,
+            ];
             $promises[$i] = $rpc_client->callRemote($url, $params, 'GET', [], true);
         }
 

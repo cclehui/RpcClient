@@ -4,6 +4,9 @@ namespace CClehui\RpcClient;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
+use Monolog\Handler\Mongo;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 
 /**
 同步调用demo
@@ -100,7 +103,7 @@ class HttpRpcClientUtil {
      *
      * @param $log_instance
      */
-    public static function setLogInstance(\CClehui\RpcClient\RpcLogAbstract $log_instance) {
+    public static function setLogInstance(Logger $log_instance) {
         self::$log_instance = $log_instance;
     }
 
@@ -154,7 +157,7 @@ class HttpRpcClientUtil {
 
         $start_ts = microtime(true);
 
-        $log_prefix = "url:$url, method:$method, params: " . json_encode($params) . ", headers:" . json_encode($headers);
+        $log_prefix = "url:$url, method:$method, params: " . json_encode($params) . ", headers:" . json_encode($headers) . ", ";
 
         try {
             $request_options['timeout'] = $this->timeout;
@@ -255,10 +258,15 @@ class HttpRpcClientUtil {
     protected static function writeRpcLog($rpc_trace_id, $log_str) {
 
         if (!self::$log_instance) {
-            self::$log_instance = new \CClehui\RpcClient\RpcLogEcho();
+            self::$log_instance = new Logger("180403_rpc_log");
+
+            $default_log_handler = new StreamHandler(STDOUT, Logger::INFO);
+
+            self::$log_instance->pushHandler($default_log_handler);
         }
 
-        self::$log_instance->log($rpc_trace_id, $log_str);
+
+        self::$log_instance->info($rpc_trace_id . ", " . $log_str);
 
     }
 
