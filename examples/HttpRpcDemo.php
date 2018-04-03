@@ -9,7 +9,7 @@ $log_handler = new \Monolog\Handler\StreamHandler(STDOUT, Monolog\Logger::INFO);
 $logger_instance->pushHandler($log_handler);
 \CClehui\RpcClient\HttpRpcClientUtil::setLogInstance($logger_instance);
 
-$request_num = 200;
+$request_num = 2;
 $url = 'http://115.28.38.4/temp/test.php';
 
 //异步请求

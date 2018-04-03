@@ -10,17 +10,17 @@ use Monolog\Logger;
 
 /**
 同步调用demo
-$url = 'http://open.chenlehui.babytree-dev.com/meitun/test_handle';
+$url = 'http://115.28.38.4/temp/test.php';
 $params = [];
-$rpc_client = new util\RpcClientUtil();
+$rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
 $res = $rpc_client->callRemote($url, $params);
 
 异步调用demo (promise机制)
-$url = 'http://open.chenlehui.babytree-dev.com/meitun/test_handle';
+$url = 'http://115.28.38.4/temp/test.php';
 $params = [];
 $promises = [];
 
-$rpc_client = new util\RpcClientUtil();
+$rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
 
 for ($i = 1; $i <= 2; $i++) {
 $promises[$i] = $rpc_client->callRemote($url, $params, 'GET', [], true);
@@ -266,7 +266,7 @@ class HttpRpcClientUtil {
         }
 
 
-        self::$log_instance->info($rpc_trace_id . ", " . $log_str);
+        self::$log_instance->info("rpc_trace_id:" . $rpc_trace_id . ", " . $log_str);
 
     }
 
