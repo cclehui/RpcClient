@@ -6,7 +6,7 @@
 ## 安装
 直接通过composer安装
 
-##功能和使用说明
+## 功能和使用说明
 ### 基于http协议的rpc调用
 HttpRpcClientUtil 在guzzle promise的基础上提供了同步和异步的http 远程调用类封装，在log中
 收集了调用的信息，可以用于调用链的性能分析
