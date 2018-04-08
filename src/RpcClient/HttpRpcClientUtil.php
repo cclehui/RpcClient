@@ -55,26 +55,60 @@ class HttpRpcClientUtil {
 
     protected $guzzle_client = null;
 
+    protected $pass_rpc_trace_id = true; //请求的时候是否带上rpc_trade_id
+
     public function __construct($rpc_trace_id = null) {
         //初始化 rpc trace id
-        self::initSetRpcTraceId($rpc_trace_id);
+        if (!self::$rpc_trace_id) {
+            self::setRpcTraceId($rpc_trace_id);
+        }
     }
 
     /**
-     * initSetRpcTraceId
-     * 设置rpc trace id
+     * setRpcTraceId
+     * 重新设置rpc trace id
      *
      * @param mixed $rpc_trace_id
      * @static
      * @access public
      * @return void
      */
-    public static function initSetRpcTraceId($rpc_trace_id) {
+    public static function setRpcTraceId($rpc_trace_id) {
         if (!$rpc_trace_id) {
             $rpc_trace_id = self::getUniqRpcTraceId();
         }
 
         self::$rpc_trace_id = $rpc_trace_id;
+
+        return self::$rpc_trace_id ;
+    }
+
+    /**
+     * getRpcTraceId
+     * 获取rpc trace id
+     *
+     * @static
+     * @access public
+     * @return void
+     */
+    public static function getRpcTraceId() {
+        if (!self::$rpc_trace_id) {
+            self::setRpcTraceId();
+        }
+
+        return self::$rpc_trace_id;
+    }
+
+    /**
+     * setPassRpcTraceId
+     * 请求的时候是否传递rpc_trace_id
+     *
+     * @param mixed $pass
+     * @access public
+     * @return void
+     */
+    public function setPassRpcTraceId($pass = true) {
+        $this->pass_rpc_trace_id = $pass ? true : false;
     }
 
     //设置rpc调用的 server端环境
@@ -154,6 +188,11 @@ class HttpRpcClientUtil {
         }
 
         $params['rpc_trace_id'] = $rpc_trace_id;
+
+        //不传递rpc_trace_id
+        if (!$this->pass_rpc_trace_id) {
+            unset($params['rpc_trace_id']);
+        }
 
         $start_ts = microtime(true);
 
