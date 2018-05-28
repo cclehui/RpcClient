@@ -6,6 +6,17 @@ require_once __DIR__ . '/../vendor/autoload.php';
 //ini_set("allow_url_fopen", false);
 use \GuzzleHttp\Promise\Promise;
 
+use GuzzleHttp\Promise\FulfilledPromise;
+
+$promise = new FulfilledPromise('value');
+
+// Fulfilled callbacks are immediately invoked.
+$promise->then(function ($value) {
+    echo $value;
+});
+
+echo "xxxxxxx";sleep(3);die;
+
 $promise = new \GuzzleHttp\Promise\Promise();
 
 $promise = new Promise(function () use (&$promise) {
