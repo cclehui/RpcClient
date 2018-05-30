@@ -19,7 +19,8 @@ $config = [
 
 $client = new GuzzleHttp\Client($config);
 
-$url = "http://118.24.111.175/test/test.php";
+$url = "http://118.24.111.175/test.php";
+//$url = "http://open.chenlehui.babytree-dev.com/content/test";
 
 $params = [
     "aaaaaaaaaaa" => "1111111"

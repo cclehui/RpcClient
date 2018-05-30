@@ -112,10 +112,13 @@ class StreamSocketHandler {
         $write_timeout = 3;//cclehui_test
         stream_set_timeout($this->stream_socket, $write_timeout);
 
-        $response = stream_get_contents($stream_socket, 1);
-        $response = stream_socket_recvfrom($stream_socket, 2);
+        $response = stream_get_contents($stream_socket);
+//        $response = http_chunked_decode(stream_get_contents($stream_socket));
+//        $response = stream_socket_recvfrom($stream_socket, 2);
 
-        print_r(stream_get_meta_data($stream_socket));
+//        echo http_chunked_decode($response);
+
+//        print_r(stream_get_meta_data($stream_socket));
 
         echo "xxxxxxxxxxxxxxxxxxx\n";
 
@@ -163,6 +166,8 @@ class StreamSocketHandler {
         if (!$request->hasHeader('Content-Length') && $body->getSize() > 0) {
             $headers['Content-Length'] = [$body->getSize()];
         }
+
+        $headers['Connection'] = ['close'];
 
         foreach ($headers as $key => $values) {
             $value = implode(', ', $values);
