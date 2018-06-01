@@ -17,6 +17,8 @@ $config = [
 
 ];
 
+//print_r(stream_get_wrappers());die;
+
 $client = new GuzzleHttp\Client($config);
 
 $url = "http://118.24.111.175/test.php";

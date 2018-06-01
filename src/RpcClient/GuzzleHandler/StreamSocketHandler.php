@@ -108,11 +108,41 @@ class StreamSocketHandler {
 
         echo "hhhhhhhhhhhhhhhhh\n";
 
-        stream_set_blocking($stream_socket,self::SOCKET_BLOCK);
+//        stream_set_blocking($stream_socket,self::SOCKET_BLOCK);
+        stream_set_blocking($stream_socket,self::SOCKET_NON_BLOCK);
         $write_timeout = 3;//cclehui_test
-        stream_set_timeout($this->stream_socket, $write_timeout);
+//        stream_set_timeout($this->stream_socket, $write_timeout);
 
-        $response = stream_get_contents($stream_socket);
+
+
+        $response = '';
+
+        do {
+
+            $read_stream = [$stream_socket];
+            $write_stream = [];
+            $error_stream = [];
+
+            $srec = stream_select($read_stream, $write_stream, $error_stream, 5 );
+
+            if ($srec == false) {
+                break;
+            }
+            var_dump($read_stream);
+
+            foreach ($read_stream as $stream) {
+                $response += stream_get_contents($stream);
+//                $response += fread($read_stream[0], 2888888);
+
+            }
+
+//
+
+
+        } while(true);
+
+//        $response = stream_get_contents($stream_socket);
+//        $response = fread($stream_socket, 28888888);
 //        $response = http_chunked_decode(stream_get_contents($stream_socket));
 //        $response = stream_socket_recvfrom($stream_socket, 2);
 
@@ -167,7 +197,7 @@ class StreamSocketHandler {
             $headers['Content-Length'] = [$body->getSize()];
         }
 
-        $headers['Connection'] = ['close'];
+//        $headers['Connection'] = ['close'];
 
         foreach ($headers as $key => $values) {
             $value = implode(', ', $values);
@@ -186,6 +216,8 @@ class StreamSocketHandler {
         }
 
         stream_set_blocking($this->stream_socket, self::SOCKET_NON_BLOCK);
+
+//        stream_socket_shutdown($this->stream_socket, STREAM_SHUT_RD);
 
         return true;
     }
