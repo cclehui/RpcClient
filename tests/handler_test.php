@@ -35,6 +35,8 @@ $options = [
 
 $response = $client->post($url, $options);
 
+echo get_class($response->getBody()) . "\n";
+
 echo ((string)$response->getBody()) . "\n";
 
 

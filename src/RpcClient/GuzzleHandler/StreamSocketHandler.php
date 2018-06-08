@@ -6,6 +6,7 @@ use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Promise\Promise;
+use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\TransferStats;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -24,6 +25,8 @@ class StreamSocketHandler {
      */
     const CONNECT_TIMEOUT = 5;
 
+    const TIMEOUT = 3;
+
     /*
      * 默认的写数据超时时间
      */
@@ -34,7 +37,7 @@ class StreamSocketHandler {
     const SOCKET_BLOCK = 1;//阻塞
 
     /**
-     * @var null | resource
+     * @var null | StreamSocket
      */
     protected $stream_socket = null;
 
@@ -44,7 +47,7 @@ class StreamSocketHandler {
 
     public function __destruct() {
         if ($this->stream_socket) {
-            stream_socket_shutdown($this->stream_socket, STREAM_SHUT_WR);
+            $this->stream_socket->close();
         }
     }
 
@@ -69,15 +72,15 @@ class StreamSocketHandler {
 
             $send_res = $this->sendRequest($request, $options);
 
-//            echo "yyyyyyyyyyyy\n";die;
-
             $stream_socket = $this->stream_socket;
 
-            return new Promise(
-                function () use ($stream_socket) {
-                    $this->handleResponse($stream_socket);
+            $promise =  new Promise(
+                function () use ($stream_socket, &$promise) {
+                    $promise->resolve($this->handleResponse($stream_socket));
             }
             );
+
+            return $promise;
 
 
         } catch (\InvalidArgumentException $e) {
@@ -101,47 +104,22 @@ class StreamSocketHandler {
 
     }
 
-    public function handleResponse($stream_socket) {
-        if (!$stream_socket || !is_resource($stream_socket)) {
+    public function handleResponse(StreamSocket $stream_socket) {
+        $stream = $stream_socket->getStream();
+
+        if (!$stream || !is_resource($stream)) {
             throw new \Exception("handleResponse param error");
         }
 
-        echo "hhhhhhhhhhhhhhhhh\n";
+        stream_set_blocking($stream,self::SOCKET_BLOCK);
+//        stream_set_blocking($stream,self::SOCKET_NON_BLOCK);
+        $options = $stream_socket->getOptions();
 
-//        stream_set_blocking($stream_socket,self::SOCKET_BLOCK);
-        stream_set_blocking($stream_socket,self::SOCKET_NON_BLOCK);
-        $write_timeout = 3;//cclehui_test
-//        stream_set_timeout($this->stream_socket, $write_timeout);
+        if (isset($options['timeout'])) {
+            stream_set_timeout($stream, $options['timeout']);
+        }
 
-
-
-        $response = '';
-
-        do {
-
-            $read_stream = [$stream_socket];
-            $write_stream = [];
-            $error_stream = [];
-
-            $srec = stream_select($read_stream, $write_stream, $error_stream, 5 );
-
-            if ($srec == false) {
-                break;
-            }
-            var_dump($read_stream);
-
-            foreach ($read_stream as $stream) {
-                $response += stream_get_contents($stream);
-//                $response += fread($read_stream[0], 2888888);
-
-            }
-
-//
-
-
-        } while(true);
-
-//        $response = stream_get_contents($stream_socket);
+        $response = stream_get_contents($stream);
 //        $response = fread($stream_socket, 28888888);
 //        $response = http_chunked_decode(stream_get_contents($stream_socket));
 //        $response = stream_socket_recvfrom($stream_socket, 2);
@@ -152,7 +130,11 @@ class StreamSocketHandler {
 
         echo "xxxxxxxxxxxxxxxxxxx\n";
 
-        echo $response;die;
+        $result = new Response(200, [], $response);
+
+//        echo $response;die;
+
+        return $result;
 
     }
 
@@ -170,13 +152,20 @@ class StreamSocketHandler {
         $target .= $request->getUri()->getHost();
         $target .= ":" .  ($request->getUri()->getPort() ? : 80);
 
-        $timeout = isset($options['connect_timeout']) ? : self::CONNECT_TIMEOUT;
+        $options['timeout'] = isset($options['timeout']) ? : self::TIMEOUT;
+        $timeout = $options['timeout'];
 
+        $start_ts = microtime(true);
         $error_no = $error_str = null;
-        $this->stream_socket = stream_socket_client($target, $error_no, $error_str, $timeout);
+        $stream = stream_socket_client($target, $error_no, $error_str, $timeout);
 
-        if (!$this->stream_socket) {
+        if (!$stream) {
             throw new ConnectException("Connection error: $error_no, $error_str", $request);
+        }
+
+        $options['timeout'] = $options['timeout'] - (microtime(true) - $start_ts);
+        if ($options['timeout'] < 0) {
+            throw new RequestException("connect timeout", $request);
         }
 
         $http_data = sprintf(
@@ -197,7 +186,7 @@ class StreamSocketHandler {
             $headers['Content-Length'] = [$body->getSize()];
         }
 
-//        $headers['Connection'] = ['close'];
+        $headers['Connection'] = ['close'];
 
         foreach ($headers as $key => $values) {
             $value = implode(', ', $values);
@@ -207,16 +196,23 @@ class StreamSocketHandler {
         $http_data .= self::EOL . $body->getContents() . self::EOL;
 
 //        $write_timeout = 3;//cclehui_test
-//        stream_set_timeout($this->stream_socket, $write_timeout);
+        stream_set_timeout($stream, $options['timeout']);
+        $start_ts = microtime(true);
 
-        $res_int = stream_socket_sendto($this->stream_socket, $http_data);
+        $res_int = stream_socket_sendto($stream, $http_data);
 
         if ($res_int == -1) {
             throw new RequestException("send request error:$res_int", $request);
         }
 
-        stream_set_blocking($this->stream_socket, self::SOCKET_NON_BLOCK);
+        $options['timeout'] = $options['timeout'] - (microtime(true) - $start_ts);
+        if ($options['timeout'] < 0) {
+            throw new RequestException("send request timeout", $request);
+        }
 
+        stream_set_blocking($stream, self::SOCKET_NON_BLOCK);
+
+        $this->stream_socket = new StreamSocket($stream, $request, $options);
 //        stream_socket_shutdown($this->stream_socket, STREAM_SHUT_RD);
 
         return true;
