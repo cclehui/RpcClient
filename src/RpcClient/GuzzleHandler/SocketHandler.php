@@ -12,11 +12,13 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * Class StreamSocketHandler
- * HttpHandler 使用 stream_socket 做数据处理
+ * Class SocketHandler
+ * HttpHandler 使用 socket 扩展 做数据处理
  * @package CClehui\RpcClient\GuzzleHandler
  */
-class StreamSocketHandler {
+class SocketHandler {
+
+    const EOL = "\r\n";
 
     /**
      *  默认的连接超时时间
@@ -113,13 +115,13 @@ class StreamSocketHandler {
 
         $response = stream_get_contents($stream);
 
-        $parts = explode(HttpUtil::EOL . HttpUtil::EOL, $response, 2);
+        $parts = explode(self::EOL . self::EOL, $response, 2);
         if (count($parts) !== 2) {
             throw new BadResponseException("Cannot create response from data", $stream_socket->getRequest());
         }
 
         list($headers, $body) = $parts;
-        $headers = explode(HttpUtil::EOL, $headers);
+        $headers = explode(self::EOL, $headers);
 
         /// guzzle EasyHandle copy
 
@@ -145,7 +147,7 @@ class StreamSocketHandler {
 
         foreach ($headers['Transfer-Encoding'] as $value) {
             if ($value == 'chunked') {
-                $body = HttpUtil::httpChunkedDecode($body);
+                $body = $this->httpChunkedDecode($body);
                 break;
             }
         }
@@ -159,7 +161,35 @@ class StreamSocketHandler {
         );
     }
 
+    protected function httpChunkedDecode($data) {
+        $pos = 0;
+        $temp = '';
+        $total_length = strlen($data);
+        while ($pos < $total_length) {
 
+            // chunk部分(不包含CRLF)的长度,即"chunk-size [ chunk-extension ]"
+            $len = strpos($data,self::EOL, $pos) - $pos;
+
+            // 截取"chunk-size [ chunk-extension ]"
+            $str = substr($data, $pos, $len);
+
+            // 移动游标
+            $pos += $len + 2;
+            // 按;分割,得到的数组中的第一个元素为chunk-size的十六进制字符串
+            $arr = explode(';', $str,2);
+
+            // 将十六进制字符串转换为十进制数值
+            $len = hexdec($arr[0]);
+
+            // 截取chunk-data
+            $temp .=substr($data, $pos, $len);
+
+            // 移动游标
+            $pos += $len + 2;
+        }
+
+        return $temp;
+    }
 
 
     /**
@@ -192,7 +222,7 @@ class StreamSocketHandler {
         }
 
         $http_data = sprintf(
-            "%s %s HTTP/%s" . HttpUtil::EOL,
+            "%s %s HTTP/%s" . self::EOL,
             strtoupper($request->getMethod()),
             $request->getRequestTarget(),
             $request->getProtocolVersion()
@@ -213,11 +243,12 @@ class StreamSocketHandler {
 
         foreach ($headers as $key => $values) {
             $value = implode(', ', $values);
-            $http_data .= "{$key}: {$value}" . HttpUtil::EOL;
+            $http_data .= "{$key}: {$value}" . self::EOL;
         }
 
-        $http_data .= HttpUtil::EOL . $body->getContents() . HttpUtil::EOL;
+        $http_data .= self::EOL . $body->getContents() . self::EOL;
 
+//        $write_timeout = 3;//cclehui_test
         stream_set_timeout($stream, $options['timeout']);
         $start_ts = microtime(true);
 
