@@ -112,7 +112,6 @@ class StreamSocketHandler {
         }
 
         stream_set_blocking($stream,self::SOCKET_BLOCK);
-//        stream_set_blocking($stream,self::SOCKET_NON_BLOCK);
         $options = $stream_socket->getOptions();
 
         if (isset($options['timeout'])) {
@@ -120,22 +119,81 @@ class StreamSocketHandler {
         }
 
         $response = stream_get_contents($stream);
-//        $response = fread($stream_socket, 28888888);
-//        $response = http_chunked_decode(stream_get_contents($stream_socket));
-//        $response = stream_socket_recvfrom($stream_socket, 2);
 
-//        echo http_chunked_decode($response);
+        $parts = explode(self::EOL . self::EOL, $response, 2);
+        if (count($parts) !== 2) {
+            throw new BadResponseException("Cannot create response from data", $stream_socket->getRequest());
+        }
 
-//        print_r(stream_get_meta_data($stream_socket));
+        list($headers, $body) = $parts;
+        $headers = explode(self::EOL, $headers);
 
-        echo "xxxxxxxxxxxxxxxxxxx\n";
+        /// guzzle EasyHandle copy
 
-        $result = new Response(200, [], $response);
+        $startLine = explode(' ', array_shift($headers), 3);
+        $headers = \GuzzleHttp\headers_from_lines($headers);
+        $normalizedKeys = \GuzzleHttp\normalize_header_keys($headers);
 
-//        echo $response;die;
+        if (isset($normalizedKeys['content-encoding'])) {
+            $headers['x-encoded-content-encoding']
+                = $headers[$normalizedKeys['content-encoding']];
+            unset($headers[$normalizedKeys['content-encoding']]);
+            if (isset($normalizedKeys['content-length'])) {
+                $headers['x-encoded-content-length']
+                    = $headers[$normalizedKeys['content-length']];
 
-        return $result;
+                unset($headers[$normalizedKeys['content-length']]);
+                $bodyLength = (int)strlen($body);
+                if ($bodyLength) {
+                    $headers[$normalizedKeys['content-length']] = $bodyLength;
+                }
+            }
+        }
 
+        foreach ($headers['Transfer-Encoding'] as $value) {
+            if ($value == 'chunked') {
+                $body = $this->httpChunkedDecode($body);
+                break;
+            }
+        }
+
+        return new Response(
+            $startLine[1],
+            $headers,
+            $body,
+            substr($startLine[0], 5),
+            isset($startLine[2]) ? (string)$startLine[2] : null
+        );
+    }
+
+    protected function httpChunkedDecode($data) {
+        $pos = 0;
+        $temp = '';
+        $total_length = strlen($data);
+        while ($pos < $total_length) {
+
+            // chunk部分(不包含CRLF)的长度,即"chunk-size [ chunk-extension ]"
+            $len = strpos($data,self::EOL, $pos) - $pos;
+
+            // 截取"chunk-size [ chunk-extension ]"
+            $str = substr($data, $pos, $len);
+
+            // 移动游标
+            $pos += $len + 2;
+            // 按;分割,得到的数组中的第一个元素为chunk-size的十六进制字符串
+            $arr = explode(';', $str,2);
+
+            // 将十六进制字符串转换为十进制数值
+            $len = hexdec($arr[0]);
+
+            // 截取chunk-data
+            $temp .=substr($data, $pos, $len);
+
+            // 移动游标
+            $pos += $len + 2;
+        }
+
+        return $temp;
     }
 
 
