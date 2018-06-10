@@ -65,13 +65,11 @@ class SocketHandler {
                 $request = $request->withHeader('Content-Length', 0);
             }
 
-            $send_res = $this->sendRequest($request, $options);
-
-            $stream_socket = $this->stream_socket;
+            $socket = $this->sendRequest($request, $options);
 
             $promise =  new Promise(
-                function () use ($stream_socket, &$promise) {
-                    $promise->resolve($this->handleResponse($stream_socket));
+                function () use ($socket, $request, $options, &$promise) {
+                    $promise->resolve($this->handleResponse($socket, $request, $options));
             }
             );
 
@@ -99,25 +97,17 @@ class SocketHandler {
 
     }
 
-    public function handleResponse(StreamSocket $stream_socket) {
-        $stream = $stream_socket->getStream();
-
-        if (!$stream || !is_resource($stream)) {
+    public function handleResponse(Socket $socket, RequestInterface $request, array $options = []) {
+        if (!$socket) {
             throw new \Exception("handleResponse param error");
         }
 
-        stream_set_blocking($stream,self::SOCKET_BLOCK);
-        $options = $stream_socket->getOptions();
-
-        if (isset($options['timeout'])) {
-            stream_set_timeout($stream, $options['timeout']);
-        }
-
-        $response = stream_get_contents($stream);
+        $response = $socket->readAll();
+        $socket->close();
 
         $parts = explode(self::EOL . self::EOL, $response, 2);
         if (count($parts) !== 2) {
-            throw new BadResponseException("Cannot create response from data", $stream_socket->getRequest());
+            throw new BadResponseException("Cannot create response from data", $request);
         }
 
         list($headers, $body) = $parts;
@@ -147,7 +137,7 @@ class SocketHandler {
 
         foreach ($headers['Transfer-Encoding'] as $value) {
             if ($value == 'chunked') {
-                $body = $this->httpChunkedDecode($body);
+                $body = HttpUtil::httpChunkedDecode($body);
                 break;
             }
         }
@@ -161,38 +151,7 @@ class SocketHandler {
         );
     }
 
-    protected function httpChunkedDecode($data) {
-        $pos = 0;
-        $temp = '';
-        $total_length = strlen($data);
-        while ($pos < $total_length) {
-
-            // chunk部分(不包含CRLF)的长度,即"chunk-size [ chunk-extension ]"
-            $len = strpos($data,self::EOL, $pos) - $pos;
-
-            // 截取"chunk-size [ chunk-extension ]"
-            $str = substr($data, $pos, $len);
-
-            // 移动游标
-            $pos += $len + 2;
-            // 按;分割,得到的数组中的第一个元素为chunk-size的十六进制字符串
-            $arr = explode(';', $str,2);
-
-            // 将十六进制字符串转换为十进制数值
-            $len = hexdec($arr[0]);
-
-            // 截取chunk-data
-            $temp .=substr($data, $pos, $len);
-
-            // 移动游标
-            $pos += $len + 2;
-        }
-
-        return $temp;
-    }
-
-
-    /**
+     /**
      * @param RequestInterface $request
      * @param array $options
      *
@@ -201,25 +160,12 @@ class SocketHandler {
      */
     private function sendRequest(RequestInterface $request, array $options) {
 
-        $target = "tcp://";
-        $target .= $request->getUri()->getHost();
-        $target .= ":" .  ($request->getUri()->getPort() ? : 80);
+        $host = $request->getUri()->getHost();
+        $port = $request->getUri()->getPort() ? : 80;
 
-        $options['timeout'] = isset($options['timeout']) ? : self::TIMEOUT;
-        $timeout = $options['timeout'];
+        $socket = new Socket($host, $port, $options);
 
-        $start_ts = microtime(true);
-        $error_no = $error_str = null;
-        $stream = stream_socket_client($target, $error_no, $error_str, $timeout);
-
-        if (!$stream) {
-            throw new ConnectException("Connection error: $error_no, $error_str", $request);
-        }
-
-        $options['timeout'] = $options['timeout'] - (microtime(true) - $start_ts);
-        if ($options['timeout'] < 0) {
-            throw new RequestException("connect timeout", $request);
-        }
+        $socket->create()->connect();
 
         $http_data = sprintf(
             "%s %s HTTP/%s" . self::EOL,
@@ -248,27 +194,9 @@ class SocketHandler {
 
         $http_data .= self::EOL . $body->getContents() . self::EOL;
 
-//        $write_timeout = 3;//cclehui_test
-        stream_set_timeout($stream, $options['timeout']);
-        $start_ts = microtime(true);
+        $socket->write($http_data); // non block
 
-        $res_int = stream_socket_sendto($stream, $http_data);
-
-        if ($res_int == -1) {
-            throw new RequestException("send request error:$res_int", $request);
-        }
-
-        $options['timeout'] = $options['timeout'] - (microtime(true) - $start_ts);
-        if ($options['timeout'] < 0) {
-            throw new RequestException("send request timeout", $request);
-        }
-
-        stream_set_blocking($stream, self::SOCKET_NON_BLOCK);
-
-        $this->stream_socket = new StreamSocket($stream, $request, $options);
-//        stream_socket_shutdown($this->stream_socket, STREAM_SHUT_RD);
-
-        return true;
+        return $socket;
     }
 
     private function invokeStats(

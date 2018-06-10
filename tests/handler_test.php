@@ -12,7 +12,8 @@ $host = '118.24.111.175';
 $config = [
 
 //    'handler' => new \GuzzleHttp\Handler\StreamHandler(),
-    'handler' => new \CClehui\RpcClient\GuzzleHandler\StreamSocketHandler(),
+//    'handler' => new \CClehui\RpcClient\GuzzleHandler\StreamSocketHandler(),
+    'handler' => new \CClehui\RpcClient\GuzzleHandler\SocketHandler(),
 //    'handler' => new \psrebniak\GuzzleSocketHandler\SocketHandlerFactory($host,AF_INET, SOCK_STREAM, SOL_TCP),
 
 ];
@@ -22,7 +23,7 @@ $config = [
 $client = new GuzzleHttp\Client($config);
 
 $url = "http://118.24.111.175/test.php";
-//$url = "http://open.chenlehui.babytree-dev.com/content/test";
+//$url = "http://open.chenlehui.babytree-dev.com/user/test";
 
 $params = [
     "aaaaaaaaaaa" => "1111111"
