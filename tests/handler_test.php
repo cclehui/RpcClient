@@ -14,7 +14,6 @@ $config = [
 //    'handler' => new \GuzzleHttp\Handler\StreamHandler(),
 //    'handler' => new \CClehui\RpcClient\GuzzleHandler\StreamSocketHandler(),
     'handler' => new \CClehui\RpcClient\GuzzleHandler\SocketHandler(),
-//    'handler' => new \psrebniak\GuzzleSocketHandler\SocketHandlerFactory($host,AF_INET, SOCK_STREAM, SOL_TCP),
 
 ];
 
