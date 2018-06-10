@@ -39,3 +39,7 @@ foreach($result_list as $key => $item) {
 ```
 
 更详细的使用demo在 examples\HttpRpcDemo.php中
+
+### StreamSocketHandler
+
+### SocketHandler
