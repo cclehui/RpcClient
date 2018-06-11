@@ -10,14 +10,20 @@ $logger_instance->pushHandler($log_handler);
 \CClehui\RpcClient\HttpRpcClientUtil::setLogInstance($logger_instance);
 
 $request_num = 5;
-$url = 'http://115.28.38.4/temp/test.php';
+$url = 'http://118.24.111.175/test.php';
+
+$config = [
+//        'handler' => new \GuzzleHttp\Handler\StreamHandler(),
+//    'handler' => new \CClehui\RpcClient\GuzzleHandler\StreamSocketHandler(),
+    'handler' => new \CClehui\RpcClient\GuzzleHandler\SocketHandler(),
+];
 
 //异步请求
 $start_ts = microtime(true);
-$async_result = HttpRpcDemo::AsyncHttpDemo($url, $argv, $request_num);
+$async_result = HttpRpcDemo::AsyncHttpDemo($url, $argv, $request_num, $config);
 $cost_time = microtime(true) - $start_ts;
 
-echo "异步请求耗时:" . $cost_time . "\n";
+echo "异步请求耗时:" . $cost_time . "\n";die;
 
 
 //同步请求
@@ -36,9 +42,10 @@ class HttpRpcDemo {
      * @return array
      * @throws Exception
      */
-    public static function HttpDemo($url, $argv = [], $num = 10) {
+    public static function HttpDemo($url, $argv = [], $num = 10, array $config = []) {
 
         $rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
+        $rpc_client->setGuzzleClientConfig($config);
 
         //环境变量用来构造 rpc_trace_id
         $rpc_client::setEnvValue("argv", $argv);
@@ -65,9 +72,10 @@ class HttpRpcDemo {
      * @return array
      * @throws Exception
      */
-    public static function AsyncHttpDemo($url, $argv = [], $num = 10) {
+    public static function AsyncHttpDemo($url, $argv = [], $num = 10, array $config = []) {
 
         $rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
+        $rpc_client->setGuzzleClientConfig($config);
 
         //环境变量用来构造 rpc_trace_id
         $rpc_client::setEnvValue("argv", $argv);

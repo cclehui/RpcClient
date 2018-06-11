@@ -55,6 +55,11 @@ class HttpRpcClientUtil {
 
     protected $guzzle_client = null;
 
+    /**
+     * @var array | array
+     */
+    protected $guzzle_client_config = []; // client的配置
+
     protected $pass_rpc_trace_id = true; //请求的时候是否带上rpc_trade_id
 
     public function __construct($rpc_trace_id = null) {
@@ -148,6 +153,13 @@ class HttpRpcClientUtil {
     }
 
     /**
+     * @param array $config
+     */
+    public function setGuzzleClientConfig(array $config) {
+        $this->guzzle_client_config = $config;
+    }
+
+    /**
      * callRemote
      * 远程rpc 调用， 支持异步
      *
@@ -205,7 +217,16 @@ class HttpRpcClientUtil {
 
             switch ($method) {
                 case 'POST' :
-                    $request_options['form_params'] = $params;
+                    switch ($headers['Content-Type']) {
+                        case 'application/json':
+                            $request_options['json'] = $params;
+                            break;
+                        default:
+
+                            $request_options['form_params'] = $params;
+                            break;
+                    }
+
                     if ($is_async) {//异步
                         $promise = $client->postAsync($url, $request_options);
 
@@ -279,7 +300,7 @@ class HttpRpcClientUtil {
     protected function getGuzzleClient() {
 
         if (!$this->guzzle_client) {
-            $this->guzzle_client = new Client();
+            $this->guzzle_client = new Client($this->guzzle_client_config);
         }
 
         return $this->guzzle_client;
