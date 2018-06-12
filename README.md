@@ -12,17 +12,27 @@ HttpRpcClientUtil 在guzzle promise的基础上提供了同步和异步的http �
 收集了调用的信息，可以用于调用链的性能分析
 
 ```php
+
+//配置不同的handler来处理
+$config = [
+//        'handler' => new \GuzzleHttp\Handler\StreamHandler(),
+//    'handler' => new \CClehui\RpcClient\GuzzleHandler\StreamSocketHandler(),
+    'handler' => new \CClehui\RpcClient\GuzzleHandler\SocketHandler(),
+];
+
 //同步调用demo
 $url = 'http://0.0.0.0/temp/test.php;
 $params = [];
 $rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
+$rpc_client->setGuzzleClientConfig($config);
 $res = $rpc_client->callRemote($url, $params);
 
 //异步调用demo (promise机制)
 $url = 'http://0.0.0.0/temp/test.php';
 $params = [];
 $promises = [];
-$rpc_client = new util\RpcClientUtil();
+$rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();();
+$rpc_client->setGuzzleClientConfig($config);
 
 for ($i = 1; $i <= 2; $i++) {
     $promises[$i] = $rpc_client->callRemote($url, $params, 'GET', [], true);
@@ -41,5 +51,7 @@ foreach($result_list as $key => $item) {
 更详细的使用demo在 examples\HttpRpcDemo.php中
 
 ### StreamSocketHandler
+见demo中的config配置， 可以配置该handler
 
 ### SocketHandler
+见demo中的config配置， 可以配置该handler

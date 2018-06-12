@@ -13,7 +13,7 @@ $config = [
 
 //    'handler' => new \GuzzleHttp\Handler\StreamHandler(),
 //    'handler' => new \CClehui\RpcClient\GuzzleHandler\StreamSocketHandler(),
-    'handler' => new \CClehui\RpcClient\GuzzleHandler\SocketHandler(),
+//    'handler' => new \CClehui\RpcClient\GuzzleHandler\SocketHandler(),
 
 ];
 
@@ -39,6 +39,11 @@ $response = $client->post($url, $options);
 
 echo ((string)$response->getBody()) . "\n";
 
+$response = $client->post($url, $options);
+
+//echo get_class($response->getBody()) . "\n";
+
+echo ((string)$response->getBody()) . "\n";
 
 class MyHandler {
 

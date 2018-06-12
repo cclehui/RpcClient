@@ -23,7 +23,8 @@ $start_ts = microtime(true);
 $async_result = HttpRpcDemo::AsyncHttpDemo($url, $argv, $request_num, $config);
 $cost_time = microtime(true) - $start_ts;
 
-echo "异步请求耗时:" . $cost_time . "\n";die;
+echo "异步请求耗时:" . $cost_time . "\n";
+//die;
 
 
 //同步请求
@@ -75,7 +76,7 @@ class HttpRpcDemo {
     public static function AsyncHttpDemo($url, $argv = [], $num = 10, array $config = []) {
 
         $rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
-        $rpc_client->setGuzzleClientConfig($config);
+//        $rpc_client->setGuzzleClientConfig($config);
 
         //环境变量用来构造 rpc_trace_id
         $rpc_client::setEnvValue("argv", $argv);
