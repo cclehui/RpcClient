@@ -4,6 +4,7 @@ namespace CClehui\RpcClient;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Promise\PromiseInterface;
 use Monolog\Handler\Mongo;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
@@ -291,9 +292,38 @@ class HttpRpcClientUtil {
 
     }
 
-    //cclehui_todo
-    public function getPromiseResult() {
+    /**
+     * @param array $promises
+     * @return array
+     */
+    public function getPromisesResponse(array $promises) {
+        if (!$promises) {
+            return [];
+        }
 
+        $result = [];
+
+        $need_wait_promises = [];
+
+        foreach ($promises as $key => $value) {
+
+            if ($value instanceof PromiseInterface) {
+                $need_wait_promises[$key] = $value;
+
+            } else {
+                $result[$key] = $value;
+            }
+        }
+
+        if ($need_wait_promises) {
+            $promise_results = \GuzzleHttp\Promise\settle($need_wait_promises)->wait();
+
+            foreach ($promise_results as $key => $item) {
+                $result[$key] = (string)$item['value']->getBody();
+            }
+        }
+
+        return $result;
     }
 
     //获取guzzle的 client
