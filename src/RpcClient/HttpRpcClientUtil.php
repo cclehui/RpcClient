@@ -319,7 +319,9 @@ class HttpRpcClientUtil {
             $promise_results = \GuzzleHttp\Promise\settle($need_wait_promises)->wait();
 
             foreach ($promise_results as $key => $item) {
-                $result[$key] = (string)$item['value']->getBody();
+                //$result[$key] = (string)$item['value']->getBody();
+                $result[$key] = $item['value']; //\GuzzleHttp\Psr7\Response
+                //$result[$key] = $item;
             }
         }
 
