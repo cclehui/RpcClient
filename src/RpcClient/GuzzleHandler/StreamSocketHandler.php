@@ -63,13 +63,19 @@ class StreamSocketHandler {
                 $request = $request->withHeader('Content-Length', 0);
             }
 
-            $send_res = $this->sendRequest($request, $options);
+            $stream_socket = $this->sendRequest($request, $options);
 
-            $stream_socket = $this->stream_socket;
+//            $stream_socket = $this->stream_socket;
 
             $promise =  new Promise(
                 function () use ($stream_socket, &$promise) {
-                    $promise->resolve($this->handleResponse($stream_socket));
+                    try {
+                        $response = $this->handleResponse($stream_socket);
+                        $promise->resolve($response);
+
+                    } catch (\Exception $e) {
+                        $promise->reject($e);
+                    }
             }
             );
 
@@ -107,7 +113,9 @@ class StreamSocketHandler {
         $options = $stream_socket->getOptions();
 
         if (isset($options['timeout'])) {
-            stream_set_timeout($stream, $options['timeout']);
+            $sec = (int)$options['timeout'];
+            $usec = ((int)($options['timeout'] * 1000000)) % 1000000;
+            stream_set_timeout($stream, $sec, $usec);
         }
 
         $response = stream_get_contents($stream);
@@ -236,7 +244,7 @@ class StreamSocketHandler {
         $this->stream_socket = new StreamSocket($stream, $request, $options);
 //        stream_socket_shutdown($this->stream_socket, STREAM_SHUT_RD);
 
-        return true;
+        return $this->stream_socket;
     }
 
     private function invokeStats(
