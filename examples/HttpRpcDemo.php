@@ -9,8 +9,8 @@ $log_handler = new \Monolog\Handler\StreamHandler(STDOUT, Monolog\Logger::INFO);
 $logger_instance->pushHandler($log_handler);
 \CClehui\RpcClient\HttpRpcClientUtil::setLogInstance($logger_instance);
 
-$request_num = 5;
-$url = 'http://118.24.111.175/test.php';
+$request_num = 3;
+$url = 'http://118.24.111.175/test.php'; // test.php中 sleep 1秒
 
 $config = [
 //        'handler' => new \GuzzleHttp\Handler\StreamHandler(),
@@ -58,6 +58,7 @@ class HttpRpcDemo {
             $params = [
                 "temp" => $i,
             ];
+
             $result[$i] = $rpc_client->callRemote($url, $params, 'GET', [], false);
         }
 
@@ -76,7 +77,8 @@ class HttpRpcDemo {
     public static function AsyncHttpDemo($url, $argv = [], $num = 10, array $config = []) {
 
         $rpc_client = new \CClehui\RpcClient\HttpRpcClientUtil();
-//        $rpc_client->setGuzzleClientConfig($config);
+        $rpc_client->setGuzzleClientConfig($config);
+        $rpc_client->setTimeout(3);
 
         //环境变量用来构造 rpc_trace_id
         $rpc_client::setEnvValue("argv", $argv);
@@ -93,23 +95,27 @@ class HttpRpcDemo {
         }
 
         //等待所有请求的完成
-        $response_list = \GuzzleHttp\Promise\settle($promises)->wait();
-
-        $result = [];
-
-        foreach ($response_list as $key => $item) {
-
-
-            if (!isset($item['value'])) {
-                $result[$key] = null;
-
-            } else {
-                $response = $item['value'];
-                $result[$key] = (string)$response->getBody();
-            }
-        }
-
+        $result = $rpc_client->getPromisesResponse($promises);
+//        print_r($result);
         return $result;
+//        $response_list = \GuzzleHttp\Promise\settle($promises)->wait();
+
+//        $result = [];
+//
+//        foreach ($response_list as $key => $item) {
+//
+//
+//            if (!isset($item['value'])) {
+//                $result[$key] = null;
+//
+//            } else {
+//                $response = $item['value'];
+//                $result[$key] = (string)$response->getBody();
+//            }
+//        }
+//
+//
+//        return $result;
     }
 
 }

@@ -260,11 +260,11 @@ class HttpRpcClientUtil {
 
                     },
 
-                    function (\GuzzleHttp\Exception\RequestException $e) use($start_ts, $rpc_trace_id, $log_prefix) {
+                    function (\Exception $e) use($start_ts, $rpc_trace_id, $log_prefix) {
 
                         $end_ts = microtime(true);
                         $diff = $end_ts - $start_ts;
-                        self::writeRpcLog($rpc_trace_id, "$start_ts, $end_ts, $diff, " . $log_prefix . "异步请求, error:" . $e->getMessage());
+                        self::writeErrorLog($rpc_trace_id, "$start_ts, $end_ts, $diff, " . $log_prefix . "异步请求, error:" . $e->getMessage());
                     }
                 );
 
@@ -320,7 +320,7 @@ class HttpRpcClientUtil {
 
             foreach ($promise_results as $key => $item) {
                 //$result[$key] = (string)$item['value']->getBody();
-                $result[$key] = $item['value']; //\GuzzleHttp\Psr7\Response
+                $result[$key] = isset($item['value']) ? : null; //\GuzzleHttp\Psr7\Response
                 //$result[$key] = $item;
             }
         }
@@ -344,6 +344,22 @@ class HttpRpcClientUtil {
         $prefix = intval(microtime(true) * 1000) . "_" . crc32(json_encode(self::$ENV)) . "_";
 
         return uniqid($prefix);
+    }
+
+    //写log
+    protected static function writeErrorLog($rpc_trace_id, $log_str) {
+
+        if (!self::$log_instance) {
+            self::$log_instance = new Logger("180403_rpc_log");
+
+            $default_log_handler = new StreamHandler(STDOUT, Logger::INFO);
+
+            self::$log_instance->pushHandler($default_log_handler);
+        }
+
+
+        self::$log_instance->error("rpc_trace_id:" . $rpc_trace_id . ", " . $log_str);
+
     }
 
     //写log

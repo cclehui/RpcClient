@@ -31,19 +31,11 @@ class SocketHandler {
 
     const SOCKET_BLOCK = 1;//阻塞
 
-    /**
-     * @var null | StreamSocket
-     */
-    protected $stream_socket = null;
-
     public function __construct() {
 
     }
 
     public function __destruct() {
-        if ($this->stream_socket) {
-            $this->stream_socket->close();
-        }
     }
 
     public function __invoke(RequestInterface $request, array $options) {
@@ -67,10 +59,16 @@ class SocketHandler {
 
             $socket = $this->sendRequest($request, $options);
 
-            $promise =  new Promise(
+            $promise = new Promise(
                 function () use ($socket, $request, $options, &$promise) {
-                    $promise->resolve($this->handleResponse($socket, $request, $options));
-            }
+                    try {
+                        $response = $this->handleResponse($socket, $request, $options);
+                        $promise->resolve($response);
+
+                    } catch (\Exception $e) {
+                        $promise->reject($e);
+                    }
+                }
             );
 
             return $promise;
@@ -91,6 +89,7 @@ class SocketHandler {
             }
             $e = RequestException::wrapException($request, $e);
             $this->invokeStats($options, $request, $startTime, null, $e);
+
 
             return \GuzzleHttp\Promise\rejection_for($e);
         }
@@ -151,7 +150,7 @@ class SocketHandler {
         );
     }
 
-     /**
+    /**
      * @param RequestInterface $request
      * @param array $options
      *
@@ -161,7 +160,7 @@ class SocketHandler {
     private function sendRequest(RequestInterface $request, array $options) {
 
         $host = $request->getUri()->getHost();
-        $port = $request->getUri()->getPort() ? : 80;
+        $port = $request->getUri()->getPort() ?: 80;
 
         $socket = new Socket($host, $port, $options);
 
@@ -217,7 +216,6 @@ class SocketHandler {
             call_user_func($options['on_stats'], $stats);
         }
     }
-
 
 
 }

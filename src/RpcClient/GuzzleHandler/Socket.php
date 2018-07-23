@@ -93,16 +93,42 @@ class Socket {
     public function connect() {
         $this->setSocketTimeOut(SO_SNDTIMEO);
 
-
         $start_ts = microtime(true);
 
         $connect_res = socket_connect($this->socket, $this->ip, $this->port);
 
-        if (false === $connect_res) {
-            $this->throwSocketException("Cannot connect socket to {$this->ip}:{$this->port}");
-        }
+        $this->costTime($start_ts);
 
-        $this->timeout = $this->timeout - (microtime(true) - $start_ts);
+        if (false === $connect_res) {
+            $start_ts = microtime(true);
+
+            $error_code = is_resource($this->socket) ? socket_last_error($this->socket) : socket_last_error();
+            switch ($error_code) {
+                case SOCKET_EINTR:
+                case SOCKET_EINPROGRESS:
+                    $readfs = array($this->socket);
+                    $writefs = array($this->socket);
+                    $excepts = NULL;
+
+                    $timeout = $this->getSocketTimeOut();
+                    $rt = socket_select($readfs, $writefs, $excepts, $timeout['sec'], $timeout['usec']);
+
+                    if ($rt === false) {
+                        $this->throwSocketException("socket_select connect socket fail {$this->ip}:{$this->port}");
+
+                    } else if ($rt > 0) {
+                        break;
+
+                    } else {
+                        $this->throwSocketException("socket_select connect timeout {$this->ip}:{$this->port}");
+                    }
+                    break;
+                default:
+                    $this->throwSocketException("cannot connect socket {$this->ip}:{$this->port}");
+            }
+
+            $this->costTime($start_ts);
+        }
 
         if (!socket_set_nonblock($this->socket)) {
             $this->throwSocketException("socket_set_nonblock fail");
@@ -123,9 +149,13 @@ class Socket {
             throw new SocketException("Cannot write to empty socket.");
         }
 
+        $start_ts = microtime(true);
+
         if (false === socket_write($this->socket, $message, strlen($message))) {
             $this->throwSocketException("Error occur when write to stream");
         }
+
+        $this->costTime($start_ts);
 
         return $this;
     }
@@ -146,9 +176,36 @@ class Socket {
         $this->setSocketTimeOut(SO_RCVTIMEO);
 
         $response = "";
-        while ($partial = $this->readChunk($type, $chunkLength)) {
+        do {
+            $start_ts = microtime(true);
+
+            $partial = socket_read($this->socket, $chunkLength, $type);
+
+            if (false === $partial) {
+                $error_code = socket_last_error($this->socket);
+
+                if ($error_code == SOCKET_EINTR) {
+                    //消费时间 超时抛异常
+                    $this->costTime($start_ts);
+                    continue;
+                }
+
+                $error_message = socket_strerror($error_code);
+                socket_clear_error($this->socket);
+
+                throw new SocketException("Error occur when read from stream, {$error_message}, $error_code");
+
+            }
+
+            if (!$partial) {
+                break;
+            }
+
             $response .= $partial;
-        }
+            //消费时间 超时抛异常
+            $this->costTime($start_ts);
+
+        } while (true);
 
         return $response;
     }
@@ -198,6 +255,18 @@ class Socket {
         $usec = ((int)($this->timeout * 1000000)) % 1000000;
         $timeout = array('sec' => $sec, 'usec' => $usec);
         return $timeout;
+    }
+
+    //消耗时间
+    protected function costTime($start_ts, $now = null) {
+
+        $now = $now ?: microtime(true);
+
+        $this->timeout = $this->timeout - (microtime(true) - $start_ts);
+
+        if ($this->timeout < 0) {
+            $this->throwSocketException("timeout is less than 0");
+        }
     }
 
     protected function applyOptions($options) {

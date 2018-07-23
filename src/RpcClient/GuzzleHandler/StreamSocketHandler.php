@@ -103,7 +103,6 @@ class StreamSocketHandler {
         if (!$stream || !is_resource($stream)) {
             throw new \Exception("handleResponse param error");
         }
-
         stream_set_blocking($stream,self::SOCKET_BLOCK);
         $options = $stream_socket->getOptions();
 

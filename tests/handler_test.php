@@ -13,7 +13,7 @@ $config = [
 
 //    'handler' => new \GuzzleHttp\Handler\StreamHandler(),
 //    'handler' => new \CClehui\RpcClient\GuzzleHandler\StreamSocketHandler(),
-//    'handler' => new \CClehui\RpcClient\GuzzleHandler\SocketHandler(),
+    'handler' => new \CClehui\RpcClient\GuzzleHandler\SocketHandler(),
 
 ];
 
